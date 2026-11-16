@@ -1,10 +1,12 @@
 // Does the heavy lifting off the page's main thread: analyses each track once,
-// then renders mashups from them as settings change.
+// renders mashups from them as settings change, and encodes downloads.
 
 import { analyzeTrack } from './analysis.js';
 import { renderMashup, encodeWav } from './mashup.js';
+import { encode } from './formats.js';
 
 const tracks = {};
+let lastMix = null;
 
 function mono(channels) {
     if (channels.length === 1) return channels[0];
@@ -13,7 +15,7 @@ function mono(channels) {
     return out;
 }
 
-self.onmessage = (event) => {
+self.onmessage = async (event) => {
     const { id, type } = event.data;
     const reply = (data, transfer = []) => self.postMessage({ id, ...data }, transfer);
     try {
@@ -35,8 +37,15 @@ self.onmessage = (event) => {
                 settings: event.data.settings,
                 onProgress: (stage, fraction) => reply({ type: 'progress', stage, fraction }),
             });
+            lastMix = { channels: result.channels, sampleRate: result.sampleRate };
+            // WAV for the in-page player: instant, and plays everywhere
             const wav = encodeWav(result.channels, result.sampleRate);
             reply({ type: 'done', plan: result.plan, songInfo: song.info, rttInfo: rtt.info, wav }, [wav]);
+        }
+        else if (type === 'encode') {
+            if (!lastMix) throw new Error('Make a mashup first.');
+            const data = await encode(event.data.format, lastMix.channels, lastMix.sampleRate, (fraction) => reply({ type: 'progress', stage: 'Encoding', fraction }));
+            reply({ type: 'done', data }, [data]);
         }
     }
     catch (error) {

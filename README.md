@@ -6,7 +6,8 @@ Mash any song up with the Rin Tin Tin freestyle, right in your browser: the free
 
 1. Drop in your copy of the Rin Tin Tin freestyle (a vocals-only version mixes cleanest). It's remembered on your device for next time.
 2. Drop in any song.
-3. Hit **Make mashup**, listen, and download the WAV.
+3. Pick the **freestyle tempo**: closest match, slowed down (half-time against fast songs) or sped up (double-time against slow ones).
+4. Hit **Make mashup**, listen, and download it as **MP3** (320/192/128 kbps), **Ogg Vorbis**, **FLAC** or **WAV**.
 
 Nothing is uploaded: decoding, analysis and rendering all happen locally. This repo doesn't contain or host any music; bring your own files.
 
@@ -14,6 +15,7 @@ Nothing is uploaded: decoding, analysis and rendering all happen locally. This r
 
 | Setting | What it does |
 | --- | --- |
+| Freestyle tempo | Closest match stretches it the least; slow it down never speeds the freestyle up; speed it up never slows it down. |
 | Freestyle / song volume | Balance between the two. The mix is normalised so it never clips. |
 | Freestyle bass cut | High-passes the freestyle so its kick and bass don't fight the song's. |
 | Skip freestyle intro | Starts later in the freestyle (still on a bar line). |
@@ -29,8 +31,9 @@ Nothing is uploaded: decoding, analysis and rendering all happen locally. This r
 - **Bars**: of the four beat positions, the one where harmony changes, energy jumps and kicks land hardest is taken as beat one.
 - **Key**: chroma with overtone suppression, matched against Krumhansl–Kessler profiles. The freestyle goes to the same key or a fifth away, whichever needs the least pitch-shifting.
 - **Rendering** (`src/mashup.js`): the freestyle is time-stretched with WSOLA (keeps drums and vocals crisp), resampled for the key change, laid onto the song's timeline from the first bar line, looped on 4-bar phrases with short crossfades, and mixed.
+- **Downloads** (`src/formats.js`): FLAC comes from a small built-in encoder (`src/flac.js`: fixed predictors, Rice coding, per-frame stereo decorrelation). MP3 and Ogg Vorbis use [wasm-media-encoders](https://github.com/arseneyr/wasm-media-encoders) (MIT; the LAME and libvorbis encoders compiled to WebAssembly), loaded from jsDelivr only when one of those formats is picked.
 
-All of it runs in a Web Worker (`src/worker.js`); the page is plain HTML, CSS and ES modules with no build step or dependencies.
+All of it runs in a Web Worker (`src/worker.js`); the page is plain HTML, CSS and ES modules with no build step.
 
 ## Development
 
@@ -41,6 +44,7 @@ Tests (Node 20+) use synthetic songs with known tempo, bars and key:
 ```bash
 node tests/test-analysis.mjs
 node tests/test-render.mjs
+node tests/test-flac.mjs
 ```
 
-`test-render` renders full mashups and checks that the freestyle's beats land on the song's in the output, before and after the loop point.
+`test-render` renders full mashups (closest, slowed-down and sped-up tempo choices) and checks that the freestyle's beats land on the song's in the output, before and after the loop point. `test-flac` encodes awkward signals and, on macOS, decodes them with CoreAudio to check they come back bit-exact.

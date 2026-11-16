@@ -1,10 +1,12 @@
-import { bpm, keyName } from './analysis.js';
+import { bpm, keyName, planMashup } from './analysis.js';
 import { defaultSettings } from './mashup.js';
+import { DEFAULT_FORMAT, FORMATS } from './formats.js';
 
 // everything is decoded at one rate so the two tracks line up sample for sample
 const SAMPLE_RATE = 44100;
 const SETTINGS_KEY = 'rtt-mashup-settings';
 const REMEMBER_KEY = 'rtt-mashup-remember';
+const FORMAT_KEY = 'rtt-mashup-format';
 
 // ---- worker ----
 
@@ -129,6 +131,7 @@ async function decode(file) {
 async function load(which, file) {
     const token = ++tokens[which];
     tracks[which] = null;
+    refreshTempoHints();
     markChanged();
     showTrack(which, { name: file.name, facts: 'Decoding…' });
     try {
@@ -143,6 +146,7 @@ async function load(which, file) {
         );
         if (token !== tokens[which]) return;
         tracks[which] = { name: file.name, info, file };
+        refreshTempoHints();
         showTrack(which, {
             name: file.name,
             facts: `${bpm(info).toFixed(1)} BPM · ${keyName(info.keyRoot, info.keyMinor)} · ${formatTime(info.duration)}`,
@@ -190,6 +194,8 @@ rememberBox.addEventListener('change', () => {
 // ---- settings ----
 
 const controls = document.querySelector('.controls');
+const tempo = document.querySelector('.tempo');
+const settingInputs = () => [...tempo.querySelectorAll('input'), ...controls.querySelectorAll('input')];
 const formats = {
     rttVolume: (v) => `${Math.round(v * 100)}%`,
     songVolume: (v) => `${Math.round(v * 100)}%`,
@@ -201,19 +207,43 @@ const formats = {
 
 function readSettings() {
     const settings = {};
-    for (const input of controls.querySelectorAll('input')) {
-        settings[input.name] = input.type === 'checkbox' ? input.checked : Number(input.value);
+    for (const input of settingInputs()) {
+        if (input.type === 'radio') {
+            if (input.checked) settings[input.name] = input.value;
+        }
+        else settings[input.name] = input.type === 'checkbox' ? input.checked : Number(input.value);
     }
     return settings;
 }
 
 function showSettings(settings) {
-    for (const input of controls.querySelectorAll('input')) {
+    for (const input of settingInputs()) {
         if (!(input.name in settings)) continue;
-        if (input.type === 'checkbox') input.checked = settings[input.name];
+        if (input.type === 'radio') input.checked = settings[input.name] === input.value;
+        else if (input.type === 'checkbox') input.checked = settings[input.name];
         else input.value = settings[input.name];
     }
     refreshSettings();
+}
+
+// once both tracks are in, show what each tempo choice would do to the freestyle
+const tempoHints = {
+    closest: 'Least stretching',
+    slower: 'Half-time on fast songs',
+    faster: 'Double-time on slow songs',
+};
+
+function refreshTempoHints() {
+    for (const [fit, fallback] of Object.entries(tempoHints)) {
+        const el = tempo.querySelector(`[data-for="${fit}"]`);
+        if (!tracks.song || !tracks.rtt) {
+            el.textContent = fallback;
+            continue;
+        }
+        const { speed } = planMashup(tracks.song.info, tracks.rtt.info, { tempoFit: fit });
+        const percent = Math.round((speed - 1) * 100);
+        el.textContent = Math.abs(percent) < 1 ? 'Played as is' : `${percent > 0 ? 'Sped up' : 'Slowed down'} ${Math.abs(percent)}%`;
+    }
 }
 
 function refreshSettings() {
@@ -227,11 +257,13 @@ function refreshSettings() {
     matchKey.closest('.check').style.opacity = keepPitch ? '' : '0.5';
 }
 
-controls.addEventListener('input', () => {
-    refreshSettings();
-    writeLocal(SETTINGS_KEY, readSettings());
-    markChanged();
-});
+for (const container of [tempo, controls]) {
+    container.addEventListener('input', () => {
+        refreshSettings();
+        writeLocal(SETTINGS_KEY, readSettings());
+        markChanged();
+    });
+}
 controls.querySelector('.reset').addEventListener('click', () => {
     showSettings(defaultSettings);
     writeLocal(SETTINGS_KEY, readSettings());
@@ -245,11 +277,10 @@ const makeButton = document.getElementById('make');
 const progress = document.querySelector('.progress');
 const progressBar = progress.querySelector('.bar span');
 const stageText = progress.querySelector('.stage');
-const errorText = document.querySelector('.error');
+const errorText = document.querySelector('.make .error');
 const resultCard = document.querySelector('.result');
 const player = resultCard.querySelector('audio');
 const summary = resultCard.querySelector('.summary');
-const download = resultCard.querySelector('.download');
 let busy = false, made = false, changed = false, resultUrl = null;
 
 const stages = {
@@ -270,12 +301,12 @@ function updateMake() {
 
 function describe(plan, songInfo, settings) {
     const percent = Math.round((plan.speed - 1) * 100);
-    const tempo = Math.abs(percent) < 1 ? 'kept at its own tempo' : `${percent > 0 ? 'sped up' : 'slowed down'} ${Math.abs(percent)}%`;
+    const pace = Math.abs(percent) < 1 ? 'kept at its own tempo' : `${percent > 0 ? 'sped up' : 'slowed down'} ${Math.abs(percent)}%`;
     let key;
     if (!settings.keepPitch) key = 'with its pitch following the speed';
     else if (plan.semitones === 0) key = 'in its original key';
     else key = `shifted ${plan.semitones > 0 ? 'up' : 'down'} ${Math.abs(plan.semitones)} semitone${Math.abs(plan.semitones) === 1 ? '' : 's'}`;
-    return `Freestyle ${tempo} to match the song (${bpm(songInfo).toFixed(1)} BPM), ${key}, locked to the song's bars from ${formatTime(plan.songAnchor)}.`;
+    return `Freestyle ${pace} to match the song (${bpm(songInfo).toFixed(1)} BPM), ${key}, locked to the song's bars from ${formatTime(plan.songAnchor)}.`;
 }
 
 function fileBase(name) {
@@ -300,12 +331,11 @@ makeButton.addEventListener('click', async () => {
         if (resultUrl) URL.revokeObjectURL(resultUrl);
         resultUrl = URL.createObjectURL(new Blob([result.wav], { type: 'audio/wav' }));
         player.src = resultUrl;
-        download.href = resultUrl;
-        download.download = `${fileBase(tracks.song.name)} x Rin Tin Tin.wav`;
         summary.textContent = describe(result.plan, result.songInfo, settings);
         resultCard.hidden = false;
         made = true;
         resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        newMix(fileBase(tracks.song.name));
     }
     catch (error) {
         console.error(error);
@@ -318,6 +348,70 @@ makeButton.addEventListener('click', async () => {
         progress.hidden = true;
         updateMake();
     }
+});
+
+// ---- downloads ----
+
+// The chosen format is encoded as soon as a mix is ready (or the format
+// changes), so the Download button is a plain link by the time it's clicked.
+const formatSelect = document.getElementById('format');
+const download = resultCard.querySelector('.download');
+const exportError = resultCard.querySelector('.export-error');
+let mixId = 0, mixName = 'mashup';
+const exports = new Map();
+
+for (const [value, { label }] of Object.entries(FORMATS)) formatSelect.add(new Option(label, value));
+const savedFormat = readLocal(FORMAT_KEY, DEFAULT_FORMAT);
+formatSelect.value = savedFormat in FORMATS ? savedFormat : DEFAULT_FORMAT;
+
+function formatSize(bytes) {
+    return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1e3))} KB`;
+}
+
+function newMix(name) {
+    mixId++;
+    mixName = name;
+    for (const { url } of exports.values()) URL.revokeObjectURL(url);
+    exports.clear();
+    prepareDownload();
+}
+
+async function prepareDownload() {
+    const format = formatSelect.value;
+    const { ext, mime } = FORMATS[format];
+    const short = ext.toUpperCase();
+    exportError.hidden = true;
+    const ready = exports.get(format);
+    if (ready) {
+        download.href = ready.url;
+        download.download = `${mixName} x Rin Tin Tin.${ext}`;
+        download.textContent = `Download ${short} · ${formatSize(ready.size)}`;
+        return;
+    }
+
+    download.removeAttribute('href');
+    download.textContent = `Preparing ${short}…`;
+    const id = mixId;
+    try {
+        const { data } = await ask({ type: 'encode', format }, [], ({ fraction }) => {
+            if (id === mixId && formatSelect.value === format) download.textContent = `Preparing ${short}… ${Math.round(fraction * 100)}%`;
+        });
+        if (id !== mixId) return;
+        exports.set(format, { url: URL.createObjectURL(new Blob([data], { type: mime })), size: data.byteLength });
+        if (formatSelect.value === format) prepareDownload();
+    }
+    catch (error) {
+        if (id !== mixId || formatSelect.value !== format) return;
+        console.error(error);
+        download.textContent = `Download ${short}`;
+        exportError.textContent = `Couldn't make the ${short}: ${error.message}. Try another format.`;
+        exportError.hidden = false;
+    }
+}
+
+formatSelect.addEventListener('change', () => {
+    writeLocal(FORMAT_KEY, formatSelect.value);
+    if (made) prepareDownload();
 });
 
 // ---- start ----

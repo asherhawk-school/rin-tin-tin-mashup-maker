@@ -598,6 +598,9 @@ export const defaultPlanOptions = {
     matchKey: true,
     preservePitch: true,
     loop: true,
+    // 'closest': least stretching; 'slower': freestyle never sped up (half-time
+    // feel against fast songs); 'faster': never slowed down (double-time)
+    tempoFit: 'closest',
 };
 
 // How to play the freestyle against the song: its playback speed, pitch
@@ -616,10 +619,12 @@ export function planMashup(song, rtt, options = {}) {
         rttDuration: rtt.duration,
     };
 
-    // match tempos, folding by octaves so neither track is stretched more than ~41%
+    // match tempos, folding by octaves (one freestyle beat to one, two or half
+    // a song beat) into the requested range
     let speed = rtt.beatPeriod / song.beatPeriod;
-    while (speed > Math.SQRT2) speed *= 0.5;
-    while (speed < Math.SQRT1_2) speed *= 2;
+    const [low, high] = o.tempoFit === 'slower' ? [0.5, 1] : o.tempoFit === 'faster' ? [1, 2] : [Math.SQRT1_2, Math.SQRT2];
+    while (speed > high * (1 + 1e-9)) speed *= 0.5;
+    while (speed < low * (1 - 1e-9)) speed *= 2;
     plan.speed = speed;
 
     // speeding up raises the pitch by this much on its own

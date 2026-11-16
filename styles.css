@@ -306,6 +306,86 @@ h2 {
     color: var(--muted);
 }
 
+/* tempo choice */
+
+.tempo {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.tempo legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-weight: 650;
+    text-align: center;
+    width: 100%;
+}
+
+.segmented {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+}
+
+.segmented label {
+    position: relative;
+    display: grid;
+    cursor: pointer;
+}
+
+.segmented input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.segmented span {
+    display: grid;
+    gap: 1px;
+    padding: 9px 8px;
+    border-radius: 10px;
+    text-align: center;
+    color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+}
+
+.segmented b {
+    font-weight: 650;
+    font-size: 0.95rem;
+}
+
+.segmented small {
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.segmented label:hover span {
+    color: var(--text);
+}
+
+.segmented input:checked + span {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow), inset 0 0 0 1.5px var(--accent);
+}
+
+.segmented input:checked + span small {
+    color: var(--accent-strong);
+}
+
+.segmented input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 /* make */
 
 .make {
@@ -404,6 +484,48 @@ summary:focus-visible {
     margin: 0;
     color: var(--muted);
     max-width: 36rem;
+}
+
+.export {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.format {
+    display: grid;
+    gap: 4px;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.format select {
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.95rem;
+}
+
+.format select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.download {
+    min-width: 230px;
+    font-variant-numeric: tabular-nums;
+}
+
+.download:not([href]) {
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 /* fine-tune */

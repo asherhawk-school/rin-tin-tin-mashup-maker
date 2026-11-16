@@ -11,6 +11,7 @@ export const defaultSettings = {
     matchKey: true,
     keepPitch: true,
     loop: true,
+    tempoFit: 'closest', // 'closest' | 'slower' | 'faster'
     rttSkip: 0,        // seconds
     beatShift: 0,      // beats
     offsetMs: 0,       // positive plays the freestyle earlier
@@ -205,6 +206,7 @@ export function renderMashup({ song, rtt, songInfo, rttInfo, settings = {}, onPr
         matchKey: s.matchKey,
         preservePitch: s.keepPitch,
         loop: s.loop,
+        tempoFit: s.tempoFit,
     });
 
     // Net effect wanted: tempo x speed, pitch x (speed * pitch). Stretch without

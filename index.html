@@ -63,6 +63,24 @@
         </article>
     </section>
 
+    <fieldset class="tempo">
+        <legend>Freestyle tempo</legend>
+        <div class="segmented">
+            <label>
+                <input type="radio" name="tempoFit" value="closest" checked>
+                <span><b>Closest match</b><small data-for="closest">Least stretching</small></span>
+            </label>
+            <label>
+                <input type="radio" name="tempoFit" value="slower">
+                <span><b>Slow it down</b><small data-for="slower">Half-time on fast songs</small></span>
+            </label>
+            <label>
+                <input type="radio" name="tempoFit" value="faster">
+                <span><b>Speed it up</b><small data-for="faster">Double-time on slow songs</small></span>
+            </label>
+        </div>
+    </fieldset>
+
     <section class="make">
         <button type="button" id="make" class="button primary" disabled>Make mashup</button>
         <div class="progress" hidden>
@@ -76,7 +94,14 @@
         <h2>Your mashup</h2>
         <audio controls preload="auto"></audio>
         <p class="summary"></p>
-        <a class="button primary download" download>Download WAV</a>
+        <div class="export">
+            <label class="format">
+                <span>Format</span>
+                <select id="format"></select>
+            </label>
+            <a class="button primary download">Download</a>
+        </div>
+        <p class="export-error error" role="alert" hidden></p>
     </section>
 
     <details class="card tune">

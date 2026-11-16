@@ -1,6 +1,6 @@
 // Renders mashups of synthetic songs and checks the freestyle's beats land on the
-// song's in the rendered audio, before and after the loop point, for a freestyle
-// at the song's sample rate and at a different one.
+// song's in the rendered audio, before and after the loop point: at the song's
+// sample rate and a different one, and with the freestyle slowed down or sped up.
 // run: node tests/test-render.mjs
 
 import { analyzeTrack, bpm } from '../src/analysis.js';
@@ -31,8 +31,11 @@ function run(label, rttRate, settings) {
     }
     check(finite && peak <= 0.981, `output is clean (peak ${peak.toFixed(3)})`);
     check(result.channels[0].length === songAudio.channels[0].length, 'output is as long as the song');
+    if (settings.tempoFit === 'slower') check(plan.speed <= 1, 'freestyle is slowed down');
+    if (settings.tempoFit === 'faster') check(plan.speed >= 1, 'freestyle is sped up');
 
-    for (const [from, to] of [[3, 20], [40, 60], [loopAt + 2, loopAt + 20]]) {
+    const windows = [[3, 20], [40, 60], [loopAt + 2, loopAt + 20]].filter(([, to]) => to <= levelSong.duration);
+    for (const [from, to] of windows) {
         const a = Math.round(from * rate), b = Math.round(to * rate);
         const fs = analyzeTrack(result.stems.freestyle[0].slice(a, b), rate);
         const sg = analyzeTrack(result.stems.song[0].slice(a, b), rate);
@@ -46,4 +49,6 @@ function run(label, rttRate, settings) {
 
 run('freestyle at 44.1 kHz, key matched', 44100, {});
 run('freestyle at 48 kHz, record-style (pitch follows speed)', 48000, { keepPitch: false });
+run('freestyle slowed down (half-time against the song)', 44100, { tempoFit: 'slower' });
+run('freestyle sped up, record-style', 44100, { tempoFit: 'faster', keepPitch: false });
 summary();
