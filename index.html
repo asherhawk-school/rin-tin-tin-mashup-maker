@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rin Tin Tin Mashup Maker</title>
+    <meta name="description" content="Mash any song up with the Rin Tin Tin freestyle: beat-matched, bar-aligned and in key, right in your browser.">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="src/app.js"></script>
+</head>
+<body>
+<main class="page">
+    <header class="hero">
+        <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <h1>Rin Tin Tin Mashup Maker</h1>
+        <p class="lede">Drop in any song and get it mashed up with the Rin Tin Tin freestyle: beat-matched, bar-aligned and in key.</p>
+        <p class="private">Runs entirely in your browser. Your files never leave your device.</p>
+    </header>
+
+    <section class="inputs">
+        <article class="card track" data-which="rtt">
+            <div class="card-head">
+                <span class="step">1</span>
+                <div>
+                    <h2>The freestyle</h2>
+                    <p class="hint">Your copy of the Rin Tin Tin freestyle. A vocals-only version mixes cleanest.</p>
+                </div>
+            </div>
+            <label class="zone">
+                <input type="file" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac">
+                <span class="zone-icon" aria-hidden="true"></span>
+                <span class="zone-text">Drop audio here or <u>browse</u></span>
+            </label>
+            <div class="loaded" hidden>
+                <p class="file-name"></p>
+                <p class="facts"></p>
+                <button type="button" class="link change">Change file</button>
+            </div>
+            <label class="check remember">
+                <input type="checkbox" id="remember" checked>
+                <span>Remember it on this device</span>
+            </label>
+        </article>
+
+        <article class="card track" data-which="song">
+            <div class="card-head">
+                <span class="step">2</span>
+                <div>
+                    <h2>Your song</h2>
+                    <p class="hint">Anything with a steady beat. The mashup is as long as this song.</p>
+                </div>
+            </div>
+            <label class="zone">
+                <input type="file" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac">
+                <span class="zone-icon" aria-hidden="true"></span>
+                <span class="zone-text">Drop audio here or <u>browse</u></span>
+            </label>
+            <div class="loaded" hidden>
+                <p class="file-name"></p>
+                <p class="facts"></p>
+                <button type="button" class="link change">Change file</button>
+            </div>
+        </article>
+    </section>
+
+    <section class="make">
+        <button type="button" id="make" class="button primary" disabled>Make mashup</button>
+        <div class="progress" hidden>
+            <div class="bar"><span></span></div>
+            <p class="stage" aria-live="polite"></p>
+        </div>
+        <p class="error" role="alert" hidden></p>
+    </section>
+
+    <section class="card result" hidden>
+        <h2>Your mashup</h2>
+        <audio controls preload="auto"></audio>
+        <p class="summary"></p>
+        <a class="button primary download" download>Download WAV</a>
+    </section>
+
+    <details class="card tune">
+        <summary>Fine-tune</summary>
+        <div class="controls">
+            <label class="slider">
+                <span>Freestyle volume</span>
+                <input type="range" name="rttVolume" min="0" max="2" step="0.05" value="1">
+                <output></output>
+            </label>
+            <label class="slider">
+                <span>Song volume</span>
+                <input type="range" name="songVolume" min="0" max="2" step="0.05" value="1">
+                <output></output>
+            </label>
+            <label class="slider">
+                <span>Freestyle bass cut</span>
+                <input type="range" name="bassCut" min="0" max="400" step="10" value="150">
+                <output></output>
+            </label>
+            <label class="slider">
+                <span>Skip freestyle intro</span>
+                <input type="range" name="rttSkip" min="0" max="60" step="0.5" value="0">
+                <output></output>
+            </label>
+            <label class="slider">
+                <span>Beat shift</span>
+                <input type="range" name="beatShift" min="-16" max="16" step="1" value="0">
+                <output></output>
+            </label>
+            <label class="slider">
+                <span>Fine offset</span>
+                <input type="range" name="offsetMs" min="-150" max="150" step="5" value="0">
+                <output></output>
+            </label>
+            <label class="check">
+                <input type="checkbox" name="matchKey" checked>
+                <span>Match key <small>Transpose the freestyle into a key that fits the song</small></span>
+            </label>
+            <label class="check">
+                <input type="checkbox" name="keepPitch" checked>
+                <span>Keep pitch <small>Off gives a sped-up / slowed record sound</small></span>
+            </label>
+            <label class="check">
+                <input type="checkbox" name="loop" checked>
+                <span>Loop freestyle <small>Start it over on a phrase boundary if the song is longer</small></span>
+            </label>
+            <button type="button" class="link reset">Reset to defaults</button>
+        </div>
+    </details>
+
+    <footer>
+        <p>Bring your own audio: this site doesn't host, upload or store any music online.</p>
+        <p><a href="https://github.com/asherhawk-school/rin-tin-tin-mashup-maker">Source on GitHub</a></p>
+    </footer>
+</main>
+</body>
+</html>
